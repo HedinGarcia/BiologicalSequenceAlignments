@@ -12,10 +12,11 @@ def print_matrix(matrix):
         print(matrix[i])
     return
 
-def needleman_wunsch_matrix(sequence1, sequence2):
+def needleman_wunsch_sequence_alignment(sequence1, sequence2):
     numColumns = len(sequence1) + 2
     numRows = len(sequence2) + 2
     matrix = [[0 for x in range(numColumns)] for x in range(numRows)]  # Create grid for sequence
+    backtrackingMatrix = [[0 for x in range(numColumns)] for x in range(numRows)]  # Tracking chosen paths
     d = -2  # Gap penalty
 
     seqIndex, initIndex= 0, 0
@@ -41,8 +42,38 @@ def needleman_wunsch_matrix(sequence1, sequence2):
     jIndex = 2
     for i in range(iIndex,numRows):
         for j in range(jIndex,numColumns):
-            matrix[i][j] = max(matrix[i-1][j-1]+scoring_matrix(matrix[i][0],matrix[0][j]), matrix[i][j-1] + d, matrix[i-1][j] + d)
-    return matrix
+            diagonalPath = matrix[i-1][j-1] + scoring_matrix(matrix[i][0],matrix[0][j])
+            leftPath, topPath =  matrix[i][j-1] + d, matrix[i-1][j] + d
+            highestScore = max(diagonalPath, topPath, leftPath)
+            matrix[i][j] = highestScore
+            # Track the path chosen for score of pairing
+            if (highestScore == diagonalPath and highestScore == leftPath):
+                backtrackingMatrix[i][j] = "L"  # Priority over this option
+            elif (highestScore == diagonalPath and highestScore == topPath):
+                backtrackingMatrix[i][j] = "T"
+            elif (highestScore == leftPath and highestScore == topPath):
+                backtrackingMatrix[i][j] = "L"
+            elif (highestScore == diagonalPath):
+                backtrackingMatrix[i][j] = "D"
+            elif (highestScore == leftPath):
+                backtrackingMatrix[i][j] = "L"
+            elif (highestScore == topPath):
+                backtrackingMatrix[i][j] = "T"
+    # Backtrack to align sequences
+    lastRow = numRows -1
+    lastColumn = numColumns -1
+    while(lastRow !=1 and lastColumn !=1):
+        path = backtrackingMatrix[lastRow][lastColumn]
+        if (path == "D"):
+            lastRow -= 1
+            lastColumn -= 1
+        elif (path == "T"):
+            lastRow -= 1
+            sequence1 = sequence1[:lastColumn-1] + "-" + sequence1[lastColumn-1:]
+        elif (path == "L"):
+            lastColumn -= 1
+            sequence2 = sequence2[:lastRow-1] + "-" + sequence2[lastRow-1:]
+    return matrix,backtrackingMatrix, sequence1, sequence2
 
 # Read input CSV file from command line
 paramList = sys.argv
@@ -56,5 +87,9 @@ if ".csv" in inputfile:
         for row in reader:
             print("Evaluating: " + row[0] + "," + row[1])
             print("Number of rows: " + str(len(row[1]) + 2) + ", " + "Number of columns: " + str(len(row[0]) + 2))
-            print_matrix(needleman_wunsch_matrix(row[0], row[1]))
+            matrix, backtrackingMatrix, seq1, seq2 = needleman_wunsch_sequence_alignment(row[0], row[1])
+            print_matrix(backtrackingMatrix)
+            print("\n")
+            print_matrix(matrix)
+            print(seq1 + " " + seq2)
 else: print("Input is not a .csv file")
