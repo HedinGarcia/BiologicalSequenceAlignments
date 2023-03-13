@@ -38,6 +38,7 @@ def needleman_wunsch_sequence_alignment(sequence1, sequence2):
             if( j == 1 and i < numRows-1):
                 matrix[i + 1][j] = d * i  # Initialization Step
                 initIndex += 1
+    # Calculate score of sequences
     iIndex = 2
     jIndex = 2
     for i in range(iIndex,numRows):
@@ -62,7 +63,8 @@ def needleman_wunsch_sequence_alignment(sequence1, sequence2):
     # Backtrack to align sequences
     lastRow = numRows -1
     lastColumn = numColumns -1
-    while(lastRow !=1 and lastColumn !=1):
+    score = matrix[lastRow][lastColumn]
+    while(lastRow !=1 or lastColumn !=1):
         path = backtrackingMatrix[lastRow][lastColumn]
         if (path == "D"):
             lastRow -= 1
@@ -73,23 +75,28 @@ def needleman_wunsch_sequence_alignment(sequence1, sequence2):
         elif (path == "L"):
             lastColumn -= 1
             sequence2 = sequence2[:lastRow-1] + "-" + sequence2[lastRow-1:]
-    return matrix,backtrackingMatrix, sequence1, sequence2
+        elif (lastRow == 1 and lastColumn != 1):  # When the path is in the init values
+            lastColumn -= 1
+            sequence2 = "-" + sequence2
+        elif (lastColumn == 1 and lastRow != 1):  # Likewise when the path is in the init values
+            lastRow -= 1
+            sequence1 = "-" + sequence1
+    return matrix, backtrackingMatrix, sequence1, sequence2, score
 
 # Read input CSV file from command line
 paramList = sys.argv
 inputfile = paramList[1]
 if ".csv" in inputfile:
-    print("The input CSV file is", inputfile)
-    print("File content:")
+    inputfile = sys.argv[1]
     with open(inputfile, newline='', encoding='utf-8-sig') as csvfile:
         reader = csv.reader(csvfile, delimiter=',', quotechar='|')
         next(reader)  # skip header row
         for row in reader:
             print("Evaluating: " + row[0] + "," + row[1])
             print("Number of rows: " + str(len(row[1]) + 2) + ", " + "Number of columns: " + str(len(row[0]) + 2))
-            matrix, backtrackingMatrix, seq1, seq2 = needleman_wunsch_sequence_alignment(row[0], row[1])
+            matrix, backtrackingMatrix, seq1, seq2, score = needleman_wunsch_sequence_alignment(row[0], row[1])
             print_matrix(backtrackingMatrix)
             print("\n")
             print_matrix(matrix)
-            print(seq1 + " " + seq2)
+            print("Result: " + seq1 + " " + seq2 + " " + str(score) + "\n")
 else: print("Input is not a .csv file")
